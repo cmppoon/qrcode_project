@@ -10,7 +10,7 @@ hbs.registerHelper('breaklines', function(text) {
 });
 const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost:27017/Scando', { useMongoClient: true });
+mongoose.connect('mongodb://localhost:27017/'+path, { useMongoClient: true });
 mongoose.set('debug', true);
 const appendQuery = require('append-query');
 
@@ -23,20 +23,20 @@ app.set('view engine', 'hbs');
 
 var getDateTime = (seperate) => {
     if(seperate == '/'){
-        var today = new Date();    
+        var today = new Date();
         var date = today.getDate()+seperate+(today.getMonth()+1)+seperate+today.getFullYear().toString();
         var time = ('0' + today.getHours()).slice(-2) + ":" + ('0' + today.getMinutes()).slice(-2) + ":" + ('0' + today.getSeconds()).slice(-2);
     }
     else {
-        var today = new Date();    
+        var today = new Date();
         var date = today.getFullYear().toString()+seperate+(today.getMonth()+1)+seperate+today.getDate();
         var time = ('0' + today.getHours()).slice(-2) + ":" + ('0' + today.getMinutes()).slice(-2) + ":" + ('0' + today.getSeconds()).slice(-2);
     }
-    
-    return date + ' ' + time;
-};  
 
-app.get('/praya', (req, res) => {
+    return date + ' ' + time;
+};
+
+app.get('/'+path, (req, res) => {
     var qrCode = req.query.c;
     QR.findOne({qrCode}).then((doc) => {
         if(doc) {
@@ -46,12 +46,12 @@ app.get('/praya', (req, res) => {
             var dateTime = getDateTime('/', 2);
             if(req.query.uniqcode === undefined || req.query.logid === undefined){
                 return res.redirect(newFullUrl);
-            } 
+            }
             return res.render('index.hbs', {
                 qr: qrCode,
                 unicode: doc.unicode,
                 datetime: dateTime,
-                imageLink: `/praya/?c=${qrCode}&uniqcode=${doc.unicode}`,
+                imageLink: path+`/?c=${qrCode}&uniqcode=${doc.unicode}`,
                 buttonLink: `?flow=&uniqcode=${doc.unicode}&logid=59E76969705285.17013661&c=${qrCode}&action=rec&msisdn=&networkID=0`,
             });
         }
@@ -61,27 +61,27 @@ app.get('/praya', (req, res) => {
             var dateTime = getDateTime('/', 2);
             if(req.query.uniqcode === undefined || req.query.logid === undefined){
                 return res.redirect(newFullUrl);
-            } 
+            }
             return res.render('index.hbs', {
                 qr: qrCode,
                 unicode: 'FRMDVZFFQL4G55',
                 datetime: dateTime,
-                imageLink: `/praya/?c=${qrCode}&uniqcode=FRMDVZFFQL4G55`,
+                imageLink: path+`/?c=${qrCode}&uniqcode=FRMDVZFFQL4G55`,
                 buttonLink: `?flow=&uniqcode=FRMDVZFFQL4G55&logid=59E76969705285.17013661&c=${qrCode}&action=rec&msisdn=&networkID=0`,
                 newFullUrl
             });
         }
     });
-    
+
 });
 
-app.post('/praya', (req, res) => {
+app.post('/'+path, (req, res) => {
     var dateTime = getDateTime('/', 2);
     var qrCode = req.query.c;
     var text;
     var scanCount;
     var scanText ='';
-    var image; 
+    var image;
     QR.findOne({qrCode}).then((doc) => {
         if(!doc) {
             throw new Error('qr code not found');
@@ -94,17 +94,17 @@ app.post('/praya', (req, res) => {
             if (newDoc.unicode === req.query.uniqcode){
                 if (newDoc.scan.length === 1){
                     //success
-                    text = 'ขอบคุณที่ไว้วางใจใช้ praya สินค้านี้เป็นของแท้';
-                    image = 'https://www.scan-do.com/assets/images/ok-010.png';;
+                    text = text;
+                    image = image;
                     pastScan = '';
                     scanCount = '';
                     scanText = '';
                 } else {
                     //already scan
-                    text = 'คำเตือน พบการสแกนสินค้าชิ้นนี้ไปแล้ว';
+                    text = text;
                     //scanCount = 'การสแกนครั้งนี้เป็นครั้งที่ ' + (newDoc.scan.length);
                     scanCount = '';
-                    image = 'https://www.scan-do.com/assets/images/alert-002.png'
+                    image = image;
                     // var loop = (newDoc.scan.length > 10) ? 10 : newDoc.scan.length;
                     // for (var i = loop-1 ; i >= 0  ; i--){
                     //     scanText += '' + (loop-i) + ' : ' + newDoc.scan[newDoc.scan.length-(loop-i)].dateTime + ' by ' + newDoc.scan[newDoc.scan.length-(loop-i)].device + '\n';
@@ -115,13 +115,13 @@ app.post('/praya', (req, res) => {
             } else {
                 //unicode not match
                 text = 'This product is not genuine.';
-                scanCount = 'ไม่พบรหัสนี้ในระบบนะคะ';        
+                scanCount = 'ไม่พบรหัสนี้ในระบบนะคะ';
                 return res.render('scan.hbs', {
                     qr: qrCode,
                     text,
                     scanCount,
-                    imageLink: `/praya/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
-                    image: 'https://www.scan-do.com/assets/images/fail-007.png',
+                    imageLink: path+`/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
+                    image: image,
                     pastScan: `Fake Code / รหัสปลอม : ${req.query.c}`
                 });
             }
@@ -131,7 +131,7 @@ app.post('/praya', (req, res) => {
                 text,
                 scanCount,
                 scanText,
-                imageLink: `/praya/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
+                imageLink: path+`/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
                 image,
                 pastScan,
                 productCode: newDoc.productCode
@@ -140,24 +140,24 @@ app.post('/praya', (req, res) => {
     }).catch((e) => {
         //qr code not found
         text = 'ขออภัยไม่พบรหัสนี้ในระบบนะคะ';
-        scanCount = '';        
+        scanCount = '';
         return res.render('scan.hbs', {
             qr: qrCode,
             datetime: dateTime,
             text,
             scanCount,
-            imageLink: `/praya/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
-            image: 'https://www.scan-do.com/assets/images/fail-008.png',
+            imageLink: path+`/?c=${qrCode}&uniqcode=${req.query.uniqcode}`,
+            image: image,
             pastScan: `Fake Code / รหัสปลอม : ${req.query.c}`
         });
     });
 });
 
 app.get('*', (req, res) => {
-    res.redirect('https://scan-do.com/');
+    res.redirect(url);
 });
 
 app.listen(port, () => {
     console.log(`Started up at port ${port}`);
 });
-  
+
